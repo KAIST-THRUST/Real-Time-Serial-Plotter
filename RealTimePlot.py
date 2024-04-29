@@ -111,8 +111,6 @@ class RealTimePlot:
 
         # Create the timer and connect it to the update method
         self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.__update)
-        self.timer.start(self.update_rate)
 
     def __update(self) -> None:
         """
@@ -129,10 +127,8 @@ class RealTimePlot:
             # Read a line from the serial port
             line = self.ser.readline()
 
-            # Decode the line and split it into a list of strings
-            values = line.decode().strip().split(",")
-            # Convert each string in the list to a float
-            values = [float(value) for value in values]
+            # Decode the line and split it into a list of floats
+            values = [float(value) for value in line.decode().strip().split(",")]
 
             # Append each value to the corresponding y data array
             self.datas_y = [
@@ -157,11 +153,20 @@ class RealTimePlot:
         """
         Display the plot to the pyqtgraph window.
         """
+        self.timer.timeout.connect(self.__update)
+        self.timer.start(self.update_rate)
         pg.exec()
 
 
 if __name__ == "__main__":
     # Test code. Reads 6 values from the serial and plot each data.
-    datas = ["a", "b", "c", "d", "e", "f"] # list of datas.
+    datas = [
+        "sin",
+        "cos",
+        "constant",
+        "sin(2x)",
+        "square",
+        "triangular",
+    ]  # list of datas.
     plotter = RealTimePlot(port="COM2", datas=datas)
     plotter.run()
