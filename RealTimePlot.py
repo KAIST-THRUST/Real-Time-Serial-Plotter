@@ -36,6 +36,8 @@ class RealTimePlot:
         The current time, in seconds.
     _timer : QTimer
         The timer that triggers the plot updates.
+    _file_name : str
+        The file name where the data is stored.
 
     Methods
     -------
@@ -57,6 +59,7 @@ class RealTimePlot:
         port: str,
         baud_rate=9600,
         window_title="Real-time Plotting",
+        file_name="data.csv",
         update_rate=50,
         max_size=250,
     ):
@@ -76,6 +79,7 @@ class RealTimePlot:
             The baud rate of the serial port to read data from. (default is 9600)
         window_title : str, optional
             The title of the PyQtGraph window (default is "Real-time Plotting").
+        file_name: 
         update_rate : int, optional
             The rate at which the plot updates, in milliseconds (default is 50).
         max_size : int, optional
@@ -115,10 +119,15 @@ class RealTimePlot:
 
         # Set the update rate and initialize the current time
         self._update_rate = update_rate
-        self._time = 0
+        self._time = 0.0
 
         # Create the timer
         self._timer = QtCore.QTimer()
+
+        # Initialize the csv file
+        self._file_name = file_name
+        with open(self._file_name, "w", newline="") as file:
+            csv.writer(file).writerow(["time"] + datas)
 
     def __update(self) -> None:
         """
@@ -132,8 +141,8 @@ class RealTimePlot:
         """
         # Check if there is data available to read from the serial port
         if values := self.__get_data():
-            # Write value to csv file
-            self.__write_to_csv(values)
+            # Write value to csv file 
+            self.__write_to_csv([self._time] + values)
 
             # Append each value to the corresponding y data array
             self._datas_y = [
@@ -194,7 +203,7 @@ class RealTimePlot:
         -------
         None
         """
-        with open("data.csv", "a", newline="") as file:
+        with open(self._file_name, "a", newline="") as file:
             csv.writer(file).writerow(row)
 
 
