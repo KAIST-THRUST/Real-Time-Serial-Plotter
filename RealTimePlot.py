@@ -47,7 +47,7 @@ class RealTimePlot:
         Initializes the RealTimePlot object.
     __update() -> None
         Updates the plot with new data from the serial port.
-    __get_data(self) -> List[float]
+    __get_data(self, sep=",") -> List[float]
         Get the decoded data from the serial port.
     run() -> None
         Starts the PyQtGraph application.
@@ -174,9 +174,14 @@ class RealTimePlot:
             # Increment the current time by the update rate
             self._time += self._update_rate / 1000
 
-    def __get_data(self) -> List[float]:
+    def __get_data(self, sep=",") -> List[float]:
         """
         Get the decoded data from the serial port.
+
+        Parameters
+        ----------
+        sep : str, optional
+            The separator used to split the serial readings (default is ",").
 
         Returns
         -------
@@ -185,7 +190,7 @@ class RealTimePlot:
         """
         if self._ser.in_waiting > 0:
             line = self._ser.readline()
-            return [float(value) for value in line.decode().strip().split(",")]
+            return [float(value) for value in line.decode().strip().split(sep)]
         return []
 
     def run(self) -> None:
