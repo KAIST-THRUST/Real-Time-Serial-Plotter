@@ -57,7 +57,7 @@ class RealTimePlot:
 
     def __init__(
         self,
-        datas: List[str],
+        data_set: List[str],
         port: str,
         baud_rate=9600,
         window_title="Real-time Plotting",
@@ -74,7 +74,7 @@ class RealTimePlot:
 
         Parameters
         ----------
-        datas : List[str]
+        data_set : List[str]
             The list of data series to plot.
         port : str
             The name of the serial port to read data from.
@@ -92,7 +92,7 @@ class RealTimePlot:
             If True, data is written to a file named file_name. If False, no data is written (default is True).
         """
         # Set the number of data series and the maximum number of data points
-        self._num_of_data = len(datas)
+        self._num_of_data = len(data_set)
         self._max_size = max_size
 
         # Create the PyQtGraph application
@@ -111,7 +111,7 @@ class RealTimePlot:
 
         # Create the plots
         self._plots = []
-        for i, data in enumerate(datas):
+        for i, data in enumerate(data_set):
             self._plots.append(self._win.addPlot(title=data))
             if (i + 1) % 3 == 0:
                 self._win.nextRow()
@@ -136,7 +136,7 @@ class RealTimePlot:
         if self._write_to_file:
             self._file_name = file_name
             with open(self._file_name, "w", newline="") as file:
-                csv.writer(file).writerow(["time"] + datas)
+                csv.writer(file).writerow(["time"] + data_set)
 
     def __update(self) -> None:
         """
