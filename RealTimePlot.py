@@ -37,7 +37,9 @@ class RealTimePlot:
     _timer : QTimer
         The timer that triggers the plot updates.
     _file_name : str
-        The file name where the data is stored.
+        The file name where the data is stored. Only created when _write_to_file is True.
+    _write_to_file : bool
+        Whether to create the file or not.
 
     Methods
     -------
@@ -45,7 +47,7 @@ class RealTimePlot:
         Initializes the RealTimePlot object.
     __update() -> None
         Updates the plot with new data from the serial port.
-    get_data(self) -> List[float]
+    __get_data(self) -> List[float]
         Get the decoded data from the serial port.
     run() -> None
         Starts the PyQtGraph application.
@@ -62,6 +64,7 @@ class RealTimePlot:
         file_name="data.csv",
         update_rate=50,
         max_size=250,
+        write_to_file=True
     ):
         """
         Initializes the RealTimePlot object.
@@ -76,14 +79,17 @@ class RealTimePlot:
         port : str
             The name of the serial port to read data from.
         baud_rate : int, optional
-            The baud rate of the serial port to read data from. (default is 9600)
+            The baud rate of the serial port to read data from (default is 9600).
         window_title : str, optional
             The title of the PyQtGraph window (default is "Real-time Plotting").
-        file_name: 
+        file_name: str, optional
+            The name of the file where data is stored (default is "data.csv").
         update_rate : int, optional
             The rate at which the plot updates, in milliseconds (default is 50).
         max_size : int, optional
             The maximum number of data points to display on the plot (default is 250).
+        write_to_file : bool, optional
+            If True, data is written to a file named file_name. If False, no data is written (default is True).
         """
         # Set the number of data series and the maximum number of data points
         self._num_of_data = len(datas)
@@ -124,10 +130,13 @@ class RealTimePlot:
         # Create the timer
         self._timer = QtCore.QTimer()
 
-        # Initialize the csv file
-        self._file_name = file_name
-        with open(self._file_name, "w", newline="") as file:
-            csv.writer(file).writerow(["time"] + datas)
+        # Set the option parameter
+        self._write_to_file = write_to_file
+        # Initialize the csv file if write_to_file is True.
+        if self._write_to_file:
+            self._file_name = file_name
+            with open(self._file_name, "w", newline="") as file:
+                csv.writer(file).writerow(["time"] + datas)
 
     def __update(self) -> None:
         """
@@ -198,10 +207,6 @@ class RealTimePlot:
         ----------
         row : List[float]
             A list of float values representing a row of data.
-    
-        Returns
-        -------
-        None
         """
         with open(self._file_name, "a", newline="") as file:
             csv.writer(file).writerow(row)
