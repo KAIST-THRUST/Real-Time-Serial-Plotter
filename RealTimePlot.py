@@ -219,13 +219,14 @@ class RealTimePlot:
 
 if __name__ == "__main__":
     # Test code. Reads 6 values from the serial and plot each data.
+    # Modify the parameters of the `RealtimePlot` to fit your project.
     datas = [
-        "sin",
-        "cos",
-        "constant",
-        "sin(2x)",
-        "square",
-        "triangular",
+        "pressure1",
+        "pressure1",
+        "pressure3",
+        "temparature1",
+        "temparature2",
+        "flow meter",
     ]  # list of datas.
-    plotter = RealTimePlot(datas=datas, port="COM2")
+    plotter = RealTimePlot(data_set=datas, port="COM2")
     plotter.run()
