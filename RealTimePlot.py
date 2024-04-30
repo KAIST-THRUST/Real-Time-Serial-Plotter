@@ -3,6 +3,7 @@ import serial
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
 from typing import List
+import csv
 
 
 class RealTimePlot:
@@ -11,29 +12,29 @@ class RealTimePlot:
 
     Attributes
     ----------
-    num_of_data : int
+    _num_of_data : int
         The number of data series to plot.
-    max_size : int
+    _max_size : int
         The maximum number of data points to display on the plot.
-    app : QApplication
+    _app : QApplication
         The PyQtGraph application.
-    ser : Serial
+    _ser : Serial
         The serial port.
-    win : GraphicsLayoutWidget
+    _win : GraphicsLayoutWidget
         The PyQtGraph window.
-    plots : list
+    _plots : list
         The list of PlotItem objects.
-    curves : list
+    _curves : list
         The list of PlotDataItem objects.
-    datas_x : list
+    _datas_x : list
         The list of x data arrays.
-    datas_y : list
+    _datas_y : list
         The list of y data arrays.
-    update_rate : int
+    _update_rate : int
         The rate at which the plot updates, in milliseconds.
-    time : float
+    _time : float
         The current time, in seconds.
-    timer : QTimer
+    _timer : QTimer
         The timer that triggers the plot updates.
 
     Methods
@@ -42,14 +43,19 @@ class RealTimePlot:
         Initializes the RealTimePlot object.
     __update() -> None
         Updates the plot with new data from the serial port.
+    get_data(self) -> List[float]
+        Get the decoded data from the serial port.
     run() -> None
         Starts the PyQtGraph application.
+    __write_to_csv(self, row: List[float]) -> None:
+        Write a row of data to a CSV file.
     """
 
     def __init__(
         self,
-        port: str,
         datas: List[str],
+        port: str,
+        baud_rate=9600,
         window_title="Real-time Plotting",
         update_rate=50,
         max_size=250,
@@ -62,10 +68,12 @@ class RealTimePlot:
 
         Parameters
         ----------
-        port : str
-            The name of the serial port to read data from.
         datas : List[str]
             The list of data series to plot.
+        port : str
+            The name of the serial port to read data from.
+        baud_rate : int, optional
+            The baud rate of the serial port to read data from. (default is 9600)
         window_title : str, optional
             The title of the PyQtGraph window (default is "Real-time Plotting").
         update_rate : int, optional
@@ -74,43 +82,43 @@ class RealTimePlot:
             The maximum number of data points to display on the plot (default is 250).
         """
         # Set the number of data series and the maximum number of data points
-        self.num_of_data = len(datas)
-        self.max_size = max_size
+        self._num_of_data = len(datas)
+        self._max_size = max_size
 
         # Create the PyQtGraph application
-        self.app = pg.mkQApp()
+        self._app = pg.mkQApp()
 
         # Open the serial port
-        self.ser = serial.Serial(port, 9600)
+        self._ser = serial.Serial(port, baud_rate)
 
         # Create the PyQtGraph window
-        self.win = pg.GraphicsLayoutWidget(show=True)
-        self.win.resize(1200, 600)
-        self.win.setWindowTitle(window_title)
+        self._win = pg.GraphicsLayoutWidget(show=True)
+        self._win.resize(1200, 600)
+        self._win.setWindowTitle(window_title)
 
         # Enable antialiasing for smoother plot lines
         pg.setConfigOptions(antialias=True)
 
         # Create the plots
-        self.plots = []
+        self._plots = []
         for i, data in enumerate(datas):
-            self.plots.append(self.win.addPlot(title=data))
+            self._plots.append(self._win.addPlot(title=data))
             if (i + 1) % 3 == 0:
-                self.win.nextRow()
+                self._win.nextRow()
 
         # Create the curves
-        self.curves = [plot.plot(pen="y") for plot in self.plots]
+        self._curves = [plot.plot(pen="y") for plot in self._plots]
 
         # Initialize the data arrays
-        self.datas_x = [np.array([])] * self.num_of_data
-        self.datas_y = [np.array([])] * self.num_of_data
+        self._datas_x = [np.array([])] * self._num_of_data
+        self._datas_y = [np.array([])] * self._num_of_data
 
         # Set the update rate and initialize the current time
-        self.update_rate = update_rate
-        self.time = 0
+        self._update_rate = update_rate
+        self._time = 0
 
-        # Create the timer and connect it to the update method
-        self.timer = QtCore.QTimer()
+        # Create the timer
+        self._timer = QtCore.QTimer()
 
     def __update(self) -> None:
         """
@@ -123,39 +131,71 @@ class RealTimePlot:
         Finally, the data for each curve is updated with the new x and y data arrays.
         """
         # Check if there is data available to read from the serial port
-        if self.ser.in_waiting > 0:
-            # Read a line from the serial port
-            line = self.ser.readline()
-
-            # Decode the line and split it into a list of floats
-            values = [float(value) for value in line.decode().strip().split(",")]
+        if values := self.__get_data():
+            # Write value to csv file
+            self.__write_to_csv(values)
 
             # Append each value to the corresponding y data array
-            self.datas_y = [
-                np.append(data_y, value) for data_y, value in zip(self.datas_y, values)
+            self._datas_y = [
+                np.append(data_y, value) for data_y, value in zip(self._datas_y, values)
             ]
             # Append the current time to each x data array
-            self.datas_x = [np.append(data_x, self.time) for data_x in self.datas_x]
+            self._datas_x = [np.append(data_x, self._time) for data_x in self._datas_x]
 
             # If the length of a data array exceeds max_size, remove the oldest data point
-            if len(self.datas_y[0]) > self.max_size:
-                self.datas_y = [data_y[1:] for data_y in self.datas_y]
-                self.datas_x = [data_x[1:] for data_x in self.datas_x]
+            if len(self._datas_y[0]) > self._max_size:
+                self._datas_y = [data_y[1:] for data_y in self._datas_y]
+                self._datas_x = [data_x[1:] for data_x in self._datas_x]
 
             # Update the data for each curve with the new x and y data arrays
-            for curve, data_x, data_y in zip(self.curves, self.datas_x, self.datas_y):
+            for curve, data_x, data_y in zip(
+                self._curves, self._datas_x, self._datas_y
+            ):
                 curve.setData(data_x, data_y)
 
-        # Increment the current time by the update rate
-        self.time += self.update_rate / 1000
+            # Increment the current time by the update rate
+            self._time += self._update_rate / 1000
+
+    def __get_data(self) -> List[float]:
+        """
+        Get the decoded data from the serial port.
+
+        Returns
+        -------
+        List[float]
+            A list of float values each representing data values.
+        """
+        if self._ser.in_waiting > 0:
+            line = self._ser.readline()
+            return [float(value) for value in line.decode().strip().split(",")]
+        return []
 
     def run(self) -> None:
         """
         Display the plot to the pyqtgraph window.
         """
-        self.timer.timeout.connect(self.__update)
-        self.timer.start(self.update_rate)
+        # Connect the timer to the update method
+        self._timer.timeout.connect(self.__update)
+        self._timer.start(self._update_rate)
+
+        # execute the pygtgraph
         pg.exec()
+
+    def __write_to_csv(self, row: List[float]) -> None:
+        """
+        Write a row of data to a CSV file.
+    
+        Parameters
+        ----------
+        row : List[float]
+            A list of float values representing a row of data.
+    
+        Returns
+        -------
+        None
+        """
+        with open("data.csv", "a", newline="") as file:
+            csv.writer(file).writerow(row)
 
 
 if __name__ == "__main__":
@@ -168,5 +208,5 @@ if __name__ == "__main__":
         "square",
         "triangular",
     ]  # list of datas.
-    plotter = RealTimePlot(port="COM2", datas=datas)
+    plotter = RealTimePlot(datas=datas, port="COM2")
     plotter.run()
