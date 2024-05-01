@@ -64,7 +64,7 @@ class RealTimePlot:
         file_name="data.csv",
         update_rate=50,
         max_size=250,
-        write_to_file=True
+        write_to_file=True,
     ):
         """
         Initializes the RealTimePlot object.
@@ -142,16 +142,17 @@ class RealTimePlot:
         """
         Updates the plot with new data from the serial port.
 
-        This method is called every `update_rate` milliseconds by a QTimer object.
+        This method is called every `_update_rate` milliseconds by a QTimer object.
         It reads a line from the serial port, decodes it, and splits it into a list of float values.
         Each value is appended to the corresponding y data array, and the current time is appended to each x data array.
-        If the length of a data array exceeds `max_size`, the oldest data point is removed.
+        If the length of a data array exceeds `_max_size`, the oldest data point is removed.
         Finally, the data for each curve is updated with the new x and y data arrays.
         """
         # Check if there is data available to read from the serial port
         if values := self.__get_data():
-            # Write value to csv file 
-            self.__write_to_csv([self._time] + values)
+            # Write value to csv file
+            if self._write_to_file:
+                self.__write_to_csv([self._time] + values)
 
             # Append each value to the corresponding y data array
             self._datas_y = [
@@ -190,7 +191,8 @@ class RealTimePlot:
         """
         if self._ser.in_waiting > 0:
             line = self._ser.readline()
-            return [float(value) for value in line.decode().strip().split(sep)]
+            values = line.decode().strip().split(sep)
+            return [float(value) for value in values]
         return []
 
     def run(self) -> None:
@@ -207,7 +209,7 @@ class RealTimePlot:
     def __write_to_csv(self, row: List[float]) -> None:
         """
         Write a row of data to a CSV file.
-    
+
         Parameters
         ----------
         row : List[float]
