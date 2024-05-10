@@ -37,7 +37,7 @@ from RealTimePlot import RealTimePlot
 # Modify the parameters of the `RealtimePlot` to fit your project.
 datas = [
     "pressure1",
-    "pressure1",
+    "pressure2",
     "pressure3",
     "temparature1",
     "temparature2",
@@ -48,4 +48,4 @@ plotter.run()
 ```
 
 This example will show 6 graphs in your screen if input data comes from
-the serial port properly.
+the serial port `COM2` properly.
