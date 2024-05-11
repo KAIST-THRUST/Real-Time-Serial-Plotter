@@ -2,6 +2,7 @@ import numpy as np
 import serial
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
+from typing import List, Optional, Tuple
 from datetime import datetime
 import csv
 import os
