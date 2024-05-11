@@ -2,8 +2,9 @@ import numpy as np
 import serial
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
-from typing import List
+from datetime import datetime
 import csv
+import os
 
 
 class RealTimePlot:
@@ -36,8 +37,8 @@ class RealTimePlot:
         The current time, in seconds.
     _timer : QTimer
         The timer that triggers the plot updates.
-    _file_name : str
-        The file name where the data is stored. Only created when _write_to_file is True.
+    _file_path : str
+        The file path where the data is stored. Only created when _write_to_file is True.
     _write_to_file : bool
         Whether to create the file or not.
 
@@ -61,7 +62,8 @@ class RealTimePlot:
         port: str,
         baud_rate=9600,
         window_title="Real-time Plotting",
-        file_name="data.csv",
+        file_name=None,
+        file_directory_name="csv_files",
         update_rate=50,
         max_size=250,
         write_to_file=True,
@@ -83,7 +85,9 @@ class RealTimePlot:
         window_title : str, optional
             The title of the PyQtGraph window (default is "Real-time Plotting").
         file_name: str, optional
-            The name of the file where data is stored (default is "data.csv").
+            The name of the file where data is stored (default is "data_%Y-%m-%d,%H-%M-%S.csv").
+        file_directory_name: str, optional
+            The name of the directory where data is stored (default is "csv_files").
         update_rate : int, optional
             The rate at which the plot updates, in milliseconds (default is 50).
         max_size : int, optional
@@ -132,10 +136,18 @@ class RealTimePlot:
 
         # Set the option parameter
         self._write_to_file = write_to_file
+
         # Initialize the csv file if write_to_file is True.
         if self._write_to_file:
-            self._file_name = file_name
-            with open(self._file_name, "w", newline="") as file:
+            # Create the directory where the data results are written
+            os.makedirs(file_directory_name, exist_ok=True)
+
+            # Set the default file name if file name is None
+            if file_name is None:
+                file_name = datetime.now().strftime("data_%Y-%m-%d,%H-%M-%S.csv")
+            self._file_path = os.path.join(file_directory_name, file_name)
+
+            with open(self._file_path, "w", newline="") as file:
                 csv.writer(file).writerow(["time"] + data_set)
 
     def __update(self) -> None:
@@ -215,7 +227,7 @@ class RealTimePlot:
         row : List[float]
             A list of float values representing a row of data.
         """
-        with open(self._file_name, "a", newline="") as file:
+        with open(self._file_path, "a", newline="") as file:
             csv.writer(file).writerow(row)
 
 
