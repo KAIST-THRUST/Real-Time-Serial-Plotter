@@ -224,7 +224,7 @@ if __name__ == "__main__":
     # Modify the parameters of the `RealtimePlot` to fit your project.
     datas = [
         "pressure1",
-        "pressure1",
+        "pressure2",
         "pressure3",
         "temparature1",
         "temparature2",
