@@ -261,5 +261,4 @@ if __name__ == "__main__":
         "temparature2",
         "flow meter",
     ]  # list of datas.
-    plotter = RealTimePlot(data_set=datas, port="COM2")
-    plotter.run()
+    plotter = RealTimePlot(data_set=datas, port="COM2", update_rate=30)
