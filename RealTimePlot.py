@@ -6,6 +6,7 @@ from typing import List, Optional, Tuple
 from datetime import datetime
 import csv
 import os
+import threading
 
 
 class RealTimePlot:
@@ -34,8 +35,8 @@ class RealTimePlot:
         The list of y data arrays.
     _update_rate : int
         The rate at which the plot updates, in milliseconds.
-    _time : float
-        The current time, in seconds.
+    _time : int
+        The current time, in milliseconds.
     _timer : QTimer
         The timer that triggers the plot updates.
     _file_path : str
@@ -78,7 +79,8 @@ class RealTimePlot:
         Parameters
         ----------
         data_set : List[str]
-            The list of data series to plot.
+            The list of data series to plot. If the first element of data_set is "time", then
+            the time data is extracted from the serial port. Otherwise, elapsed time is calulated here.
         port : str
             The name of the serial port to read data from.
         baud_rate : int, optional
@@ -96,6 +98,16 @@ class RealTimePlot:
         write_to_file : bool, optional
             If True, data is written to a file named file_name. If False, no data is written (default is True).
         """
+        # Set the update rate and initialize the current time
+        self._update_rate = update_rate
+        self._time = 0
+        self._time_from_serial = False
+
+        # If time data comes from the serial port
+        if data_set[0] == "time":
+            self._time_from_serial = True
+            data_set = data_set[1:]
+
         # Set the number of data series and the maximum number of data points
         self._num_of_data = len(data_set)
         self._max_size = max_size
@@ -128,10 +140,6 @@ class RealTimePlot:
         self._datas_x = [np.array([])] * self._num_of_data
         self._datas_y = [np.array([])] * self._num_of_data
 
-        # Set the update rate and initialize the current time
-        self._update_rate = update_rate
-        self._time = 0.0
-
         # Create the timer
         self._timer = QtCore.QTimer()
 
@@ -162,17 +170,23 @@ class RealTimePlot:
         Finally, the data for each curve is updated with the new x and y data arrays.
         """
         # Check if there is data available to read from the serial port
-        if values := self.__get_data():
-            # Write value to csv file
-            if self._write_to_file:
-                self.__write_to_csv([self._time] + values)
+        current_time, values = self.__get_data()
+
+        if values:
+            # Write value to csv
+            write_thread = threading.Thread(
+                target=self.__write_to_csv, args=(([current_time / 1000] + values),)
+            )
+            write_thread.start()
 
             # Append each value to the corresponding y data array
             self._datas_y = [
                 np.append(data_y, value) for data_y, value in zip(self._datas_y, values)
             ]
             # Append the current time to each x data array
-            self._datas_x = [np.append(data_x, self._time) for data_x in self._datas_x]
+            self._datas_x = [
+                np.append(data_x, current_time / 1000) for data_x in self._datas_x
+            ]
 
             # If the length of a data array exceeds max_size, remove the oldest data point
             if len(self._datas_y[0]) > self._max_size:
@@ -185,10 +199,7 @@ class RealTimePlot:
             ):
                 curve.setData(data_x, data_y)
 
-            # Increment the current time by the update rate
-            self._time += self._update_rate / 1000
-
-    def __get_data(self, sep=",") -> List[float]:
+    def __get_data(self, sep=",") -> Tuple[Optional[int], List[float]]:
         """
         Get the decoded data from the serial port.
 
@@ -199,22 +210,28 @@ class RealTimePlot:
 
         Returns
         -------
-        List[float]
-            A list of float values each representing data values.
+        Tuple[Optional[int], List[float]]
+            Current time and a list of float values each representing data values.
         """
         if self._ser.in_waiting > 0:
             line = self._ser.readline()
             values = line.decode().strip().split(sep)
-            return [float(value) for value in values]
-        return []
+            raw_data = [float(value) for value in values]
+            if self._time_from_serial:
+                return raw_data[0], raw_data[1:]
+            else:
+                self._time += self._update_rate
+                return self._time, raw_data
+        return None, []
 
     def run(self) -> None:
         """
         Display the plot to the pyqtgraph window.
         """
         # Connect the timer to the update method
+        self._timer.setInterval(self._update_rate)
         self._timer.timeout.connect(self.__update)
-        self._timer.start(self._update_rate)
+        self._timer.start()
 
         # execute the pygtgraph
         pg.exec()
@@ -236,6 +253,7 @@ if __name__ == "__main__":
     # Test code. Reads 6 values from the serial and plot each data.
     # Modify the parameters of the `RealtimePlot` to fit your project.
     datas = [
+        "time",
         "pressure1",
         "pressure2",
         "pressure3",

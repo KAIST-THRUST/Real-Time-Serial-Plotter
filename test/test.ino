@@ -61,7 +61,11 @@ void loop() {
     temp2_v = get_temperature(get_voltage(analogRead(T_PIN2)));
     flow_v = get_voltage(analogRead(F_PIN));
 
+    unsigned long time = millis();
+
     // Print in CSV format into the serial.
+    Serial.print(time);
+    Serial.print(",");
     Serial.print(press1_v);
     Serial.print(",");
     Serial.print(press2_v);
