@@ -1,13 +1,13 @@
 #include <Servo.h>
 
-#define P_PIN1 A4 // pressure1
-#define P_PIN2 A3 // pressure2
-#define P_PIN3 A2 // pressure3
+#define P_PIN1 A3 // pressure1
+#define P_PIN2 A4 // pressure2
+#define P_PIN3 A5 // pressure3
 
 #define T_PIN1 A0 // temparature1
 #define T_PIN2 A1 // temparature2
 
-#define F_PIN A5           // flowmeter
+#define F_PIN A2           // flowmeter
 #define SERVO_PIN 9        // servo pin use
 #define ROTATION_TIME 1500 // time elapsed when rotating 360 degrees
 
