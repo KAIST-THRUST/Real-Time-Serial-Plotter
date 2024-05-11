@@ -35,16 +35,18 @@ from RealTimePlot import RealTimePlot
 
 # Test code. Reads 6 values from the serial and plot each data.
 # Modify the parameters of the `RealtimePlot` to fit your project.
-datas = [
-    "pressure1",
-    "pressure2",
-    "pressure3",
-    "temparature1",
-    "temparature2",
-    "flow meter",
-]  # list of datas.
-plotter = RealTimePlot(data_set=datas, port="COM2")
-plotter.run()
+if __name__ == "__main__":
+    datas = [
+        "time",
+        "pressure1",
+        "pressure2",
+        "pressure3",
+        "temparature1",
+        "temparature2",
+        "flow meter",
+    ]  # list of datas.
+    plotter = RealTimePlot(data_set=datas, port="COM2", update_rate=50)
+    plotter.run()
 ```
 
 This example will show 6 graphs in your screen if input data comes from
