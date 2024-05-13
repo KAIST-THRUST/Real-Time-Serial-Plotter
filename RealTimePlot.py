@@ -1,15 +1,17 @@
 import numpy as np
 import serial
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore
+from pyqtgraph.Qt.QtCore import QTimer, pyqtSignal, pyqtSlot, QObject
 from typing import List, Optional, Tuple
 from datetime import datetime
 import csv
 import os
 import threading
+import cProfile
+import pstats
 
 
-class RealTimePlot:
+class RealTimePlot(QObject):
     """
     A class used to plot real-time data from a serial port using PyQtGraph.
 
@@ -58,15 +60,18 @@ class RealTimePlot:
         Write a row of data to a CSV file.
     """
 
+    data_sent = pyqtSignal(tuple)
+
     def __init__(
         self,
         data_set: List[str],
         port: str,
+        update_rate=50,
+        sensor_rate=50,
         baud_rate=9600,
         window_title="Real-time Plotting",
         file_name=None,
         file_directory_name="csv_files",
-        update_rate=50,
         max_size=250,
         write_to_file=True,
     ):
@@ -98,8 +103,12 @@ class RealTimePlot:
         write_to_file : bool, optional
             If True, data is written to a file named file_name. If False, no data is written (default is True).
         """
+        QObject.__init__(self)
+        self.data_sent.connect(self.__update)
+
         # Set the update rate and initialize the current time
         self._update_rate = update_rate
+        self._sensor_rate = sensor_rate
         self._time = 0
         self._time_from_serial = False
 
@@ -141,7 +150,7 @@ class RealTimePlot:
         self._datas_y = [np.array([])] * self._num_of_data
 
         # Create the timer
-        self._timer = QtCore.QTimer()
+        self._timer = QTimer()
 
         # Set the option parameter
         self._write_to_file = write_to_file
@@ -154,12 +163,14 @@ class RealTimePlot:
             # Set the default file name if file name is None
             if file_name is None:
                 file_name = datetime.now().strftime("data_%Y-%m-%d,%H-%M-%S.csv")
+            
+            # Open the file
             self._file_path = os.path.join(file_directory_name, file_name)
-
             with open(self._file_path, "w", newline="") as file:
                 csv.writer(file).writerow(["time"] + data_set)
 
-    def __update(self) -> None:
+    @pyqtSlot(tuple)
+    def __update(self, data) -> None:
         """
         Updates the plot with new data from the serial port.
 
@@ -170,15 +181,9 @@ class RealTimePlot:
         Finally, the data for each curve is updated with the new x and y data arrays.
         """
         # Check if there is data available to read from the serial port
-        current_time, values = self.__get_data()
+        current_time, values = data
 
         if values:
-            # Write value to csv
-            write_thread = threading.Thread(
-                target=self.__write_to_csv, args=(([current_time / 1000] + values),)
-            )
-            write_thread.start()
-
             # Append each value to the corresponding y data array
             self._datas_y = [
                 np.append(data_y, value) for data_y, value in zip(self._datas_y, values)
@@ -213,26 +218,34 @@ class RealTimePlot:
         Tuple[Optional[int], List[float]]
             Current time and a list of float values each representing data values.
         """
-        if self._ser.in_waiting > 0:
-            line = self._ser.readline()
-            values = line.decode().strip().split(sep)
-            raw_data = [float(value) for value in values]
-            if self._time_from_serial:
-                return raw_data[0], raw_data[1:]
-            else:
-                self._time += self._update_rate
-                return self._time, raw_data
-        return None, []
+        count = 0
+        while True:
+            data = None, []
+            if self._ser.in_waiting > 0:
+                count += 1
+                line = self._ser.readline()
+                values = line.decode().strip().split(sep)
+                raw_data = [float(value) for value in values]
+                if self._time_from_serial:
+                    data = raw_data[0], raw_data[1:]
+                else:
+                    self._time += self._update_rate
+                    data = self._time, raw_data
+                
+                # Write value to CSV file.
+                if self._write_to_file:
+                    self.__write_to_csv(raw_data)
+                
+                if count == self._update_rate // self._sensor_rate:
+                    self.data_sent.emit(data)
+                    count = 0
 
     def run(self) -> None:
         """
         Display the plot to the pyqtgraph window.
         """
         # Connect the timer to the update method
-        self._timer.setInterval(self._update_rate)
-        self._timer.timeout.connect(self.__update)
-        self._timer.start()
-
+        threading.Thread(target=self.__get_data, daemon=True).start()
         # execute the pygtgraph
         pg.exec()
 
@@ -261,4 +274,12 @@ if __name__ == "__main__":
         "temparature2",
         "flow meter",
     ]  # list of datas.
-    plotter = RealTimePlot(data_set=datas, port="COM2", update_rate=30)
+    plotter = RealTimePlot(data_set=datas, port="COM2", update_rate=50, sensor_rate=25)
+
+    # Perfomance test
+    cProfile.run("plotter.run()", "result_test.txt")
+
+    with open("formatted_result_test.txt", "w") as f:
+        stats = pstats.Stats("result_test.txt", stream=f)
+        stats.sort_stats("cumulative")
+        stats.print_stats()
