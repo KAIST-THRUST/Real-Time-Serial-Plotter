@@ -7,8 +7,6 @@ from datetime import datetime
 import csv
 import os
 import threading
-import cProfile
-import pstats
 
 
 class RealTimePlot(QObject):
@@ -274,12 +272,5 @@ if __name__ == "__main__":
         "temparature2",
         "flow meter",
     ]  # list of datas.
-    plotter = RealTimePlot(data_set=datas, port="COM2", update_rate=50, sensor_rate=25)
-
-    # Perfomance test
-    cProfile.run("plotter.run()", "result_test.txt")
-
-    with open("formatted_result_test.txt", "w") as f:
-        stats = pstats.Stats("result_test.txt", stream=f)
-        stats.sort_stats("cumulative")
-        stats.print_stats()
+    plotter = RealTimePlot(data_set=datas, port="COM2", update_rate=50, sensor_rate=50)
+    plotter.run()
