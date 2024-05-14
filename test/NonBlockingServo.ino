@@ -20,11 +20,11 @@ void NonBlockingServo::rotate(int degree) {
   prev_move_time = millis();
 }
 
-bool NonBlockingServo::isavailable() {
+bool NonBlockingServo::isrotating() {
   int time_interval = millis() - prev_move_time;
   int degree_difference = abs(target_degree - current_degree);
   if (time_interval * ROTATION_SPEED > degree_difference) {
-    return true;
+    return false;
   }
-  return false;
+  return true;
 }

@@ -13,12 +13,12 @@
 #define F_PIN A17   // flowmeter pin number
 #define SERVO_PIN 9 // servo pin number
 
-#define ROTATION_SPEED 0.2  // rotation speed in (degree/ms)
-#define MAX_VOLTAGE 3.3   // maximum voltage of ADC
-#define ADC_RESOLUTION 10 // resolution of ADC
-#define R_MAGNITUDE 150.0 // magnitude of the electric resistance
-#define MAX_TIME 10       // maximum execution time, in seconds
-#define SENSOR_RATE 50    // sensor rate, in milliseconds
+#define ROTATION_SPEED 0.2 // rotation speed in (degree/ms)
+#define MAX_VOLTAGE 3.3    // maximum voltage of ADC
+#define ADC_RESOLUTION 10  // resolution of ADC
+#define R_MAGNITUDE 150.0  // magnitude of the electric resistance
+#define MAX_TIME 60        // maximum execution time, in seconds
+#define SENSOR_RATE 25     // sensor rate, in milliseconds
 /*********************************************************************/
 
 class NonBlockingServo {
@@ -33,7 +33,7 @@ public:
   void write(int degree);
   void attach(int pin);
   void rotate(int degree);
-  bool isavailable();
+  bool isrotating();
 };
 
 void print_value_to_serial(unsigned long time);

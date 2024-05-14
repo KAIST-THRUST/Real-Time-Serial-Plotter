@@ -1,6 +1,6 @@
 #include "test.h"
 
-static NonBlockingServo ser;
+static NonBlockingServo serv;
 static unsigned long last_print_time = 0;
 static int degree = 0;
 
@@ -8,17 +8,25 @@ void setup() {
   // analogReadRes(ADC_RESOLUTION);
   Serial.begin(9600);
   pinMode(LED_BUILTIN, OUTPUT);
-  ser.attach(SERVO_PIN);
-  ser.write(0);
+  serv.attach(SERVO_PIN);
+  serv.write(0);
 }
 
 void loop() {
+  /* Servo part. */
+  /*******************************************************************/
+  // Read data from serial if sent
   if (Serial.available()) {
     Serial.readBytes((char *)&degree, 1);
   }
-  if (ser.isavailable()) {
-    ser.rotate(degree);
+  // Rotate servo if it is not rotating
+  if (!serv.isrotating()) {
+    serv.rotate(degree);
   }
+  /*******************************************************************/
+
+  /* Sensor update part. */
+  /*******************************************************************/
   unsigned long current_time = millis();
   // Update every SENSOR_RATE time.
   if (current_time - last_print_time >= SENSOR_RATE &&
@@ -30,4 +38,5 @@ void loop() {
   else if (last_print_time > MAX_TIME * 1000) {
     digitalWrite(LED_BUILTIN, HIGH);
   }
+  /*******************************************************************/
 }
