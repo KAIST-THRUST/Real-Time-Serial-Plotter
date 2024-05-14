@@ -13,10 +13,12 @@ void setup() {
 }
 
 void loop() {
-  if (Serial.available())
-    degree = Serial.parseInt();
-  if (ser.isavailable())
+  if (Serial.available()) {
+    Serial.readBytes((char *)&degree, 1);
+  }
+  if (ser.isavailable()) {
     ser.rotate(degree);
+  }
   unsigned long current_time = millis();
   // Update every SENSOR_RATE time.
   if (current_time - last_print_time >= SENSOR_RATE &&
