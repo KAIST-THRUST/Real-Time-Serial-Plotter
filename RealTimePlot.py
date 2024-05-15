@@ -8,8 +8,6 @@ from datetime import datetime
 import csv
 import os
 import threading
-import cProfile
-import pstats
 
 
 class RealTimePlot(QObject):
