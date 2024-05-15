@@ -6,8 +6,9 @@ NonBlockingServo::NonBlockingServo() {
   prev_move_time = millis();
 }
 
-void NonBlockingServo::write(int pin) {
-  servo.write(pin);
+void NonBlockingServo::write(int degree) {
+  float degree_cmd = 0x90 + (0x31 - 0x90)/90.0 * degree;
+  servo.write(degree_cmd);
 }
 
 void NonBlockingServo::attach(int pin) {
