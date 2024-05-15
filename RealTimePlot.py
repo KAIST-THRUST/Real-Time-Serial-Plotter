@@ -218,6 +218,7 @@ class RealTimePlot(QObject):
             ):
                 curve.setData(data_x, data_y)
 
+    @pyqtSlot()
     def __send_to_servo(self):
         text = self._line_edit.text()
         try:
@@ -227,6 +228,8 @@ class RealTimePlot(QObject):
             self._ser.write(bytes_value)  # Write bytes to serial port
         except ValueError:
             print("Invalid integer")
+        finally:
+            self._line_edit.clear()
 
     def __get_data(self, sep=",") -> None:
         """
