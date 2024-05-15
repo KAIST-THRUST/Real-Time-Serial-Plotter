@@ -2,11 +2,14 @@ import numpy as np
 import serial
 import pyqtgraph as pg
 from pyqtgraph.Qt.QtCore import QTimer, pyqtSignal, pyqtSlot, QObject
+from pyqtgraph.Qt.QtWidgets import QLineEdit, QWidget, QVBoxLayout, QGraphicsProxyWidget
 from typing import List, Optional, Tuple
 from datetime import datetime
 import csv
 import os
 import threading
+import cProfile
+import pstats
 
 
 class RealTimePlot(QObject):
@@ -130,6 +133,19 @@ class RealTimePlot(QObject):
         self._win.resize(1200, 600)
         self._win.setWindowTitle(window_title)
 
+        self._widget = QWidget()
+        self._layout = QVBoxLayout()
+        self._widget.setLayout(self._layout)
+
+        self._line_edit = QLineEdit()
+        self._layout.addWidget(self._line_edit)
+        self._line_edit.returnPressed.connect(self.__send_to_servo)
+
+        proxy = QGraphicsProxyWidget()
+        proxy.setWidget(self._widget)
+        self._win.addItem(proxy)
+        self._win.nextRow()
+
         # Enable antialiasing for smoother plot lines
         pg.setConfigOptions(antialias=True)
 
@@ -161,14 +177,14 @@ class RealTimePlot(QObject):
             # Set the default file name if file name is None
             if file_name is None:
                 file_name = datetime.now().strftime("data_%Y-%m-%d,%H-%M-%S.csv")
-            
+
             # Open the file
             self._file_path = os.path.join(file_directory_name, file_name)
             with open(self._file_path, "w", newline="") as file:
                 csv.writer(file).writerow(["time"] + data_set)
 
     @pyqtSlot(tuple)
-    def __update(self, data) -> None:
+    def __update(self, data: Tuple[Optional[int], list[float]]) -> None:
         """
         Updates the plot with new data from the serial port.
 
@@ -202,7 +218,17 @@ class RealTimePlot(QObject):
             ):
                 curve.setData(data_x, data_y)
 
-    def __get_data(self, sep=",") -> Tuple[Optional[int], List[float]]:
+    def __send_to_servo(self):
+        text = self._line_edit.text()
+        try:
+            int_value = int(text)
+            hex_value = hex(int_value)[2:]  # Convert to hex
+            bytes_value = bytes.fromhex(hex_value.zfill(2))  # Convert to bytes
+            self._ser.write(bytes_value)  # Write bytes to serial port
+        except ValueError:
+            print("Invalid integer")
+
+    def __get_data(self, sep=",") -> None:
         """
         Get the decoded data from the serial port.
 
@@ -229,11 +255,11 @@ class RealTimePlot(QObject):
                 else:
                     self._time += self._update_rate
                     data = self._time, raw_data
-                
+
                 # Write value to CSV file.
                 if self._write_to_file:
                     self.__write_to_csv(raw_data)
-                
+
                 if count == self._update_rate // self._sensor_rate:
                     self.data_sent.emit(data)
                     count = 0
