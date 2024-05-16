@@ -160,6 +160,7 @@ class RealTimePlot(QObject):
         # Initialize the data arrays
         self._datas_x = [np.array([])] * self._num_of_data
         self._datas_y = [np.array([])] * self._num_of_data
+        self._servo_pos = 0
 
         # Create the timer
         self._timer = QTimer()
@@ -220,8 +221,8 @@ class RealTimePlot(QObject):
     def __send_to_servo(self):
         text = self._line_edit.text()
         try:
-            int_value = int(text)
-            hex_value = hex(int_value)[2:]  # Convert to hex
+            self._servo_pos = int(text)
+            hex_value = hex(self._servo_pos)[2:]  # Convert to hex
             bytes_value = bytes.fromhex(hex_value.zfill(2))  # Convert to bytes
             self._ser.write(bytes_value)  # Write bytes to serial port
         except ValueError:
@@ -250,7 +251,7 @@ class RealTimePlot(QObject):
                 count += 1
                 line = self._ser.readline()
                 values = line.decode().strip().split(sep)
-                raw_data = [float(value) for value in values]
+                raw_data = [float(value) for value in values] + [float(self._servo_pos)]
                 if self._time_from_serial:
                     data = raw_data[0], raw_data[1:]
                 else:
@@ -298,6 +299,7 @@ if __name__ == "__main__":
         "temparature1",
         "temparature2",
         "flow meter",
+        "servo",
     ]  # list of datas.
-    plotter = RealTimePlot(data_set=datas, port="COM2", update_rate=50, sensor_rate=50)
+    plotter = RealTimePlot(data_set=datas, port="/dev/tty.usbmodem147653001", update_rate=50, sensor_rate=50)
     plotter.run()
