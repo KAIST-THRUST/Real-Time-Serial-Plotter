@@ -4,10 +4,6 @@ float get_voltage(int raw) {
   return raw * (MAX_VOLTAGE / (pow(2, ADC_RESOLUTION) - 1));
 }
 
-float get_temperature(float voltage) {
-  return (voltage - 1.25) / 0.005;
-}
-
 float get_pressure(float voltage) {
   // Convert voltage to current (in mA)
   float current = voltage / R_MAGNITUDE * 1000.0;
@@ -27,8 +23,8 @@ void print_value_to_serial(unsigned long time) {
   press1_v = get_pressure(get_voltage(analogRead(P_PIN1)));
   press2_v = get_pressure(get_voltage(analogRead(P_PIN2)));
   press3_v = get_pressure(get_voltage(analogRead(P_PIN3)));
-  temp1_v = get_temperature(get_voltage(analogRead(T_PIN1)));
-  temp2_v = get_temperature(get_voltage(analogRead(T_PIN2)));
+  temp1_v = tc1.readTempC();
+  temp2_v = tc2.readTempC();
   flow_v = get_flow(get_voltage(analogRead(F_PIN)));
 
   // Print in CSV format into the serial.

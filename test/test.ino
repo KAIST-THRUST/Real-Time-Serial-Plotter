@@ -7,7 +7,7 @@ static int degree = 0;
 void setup() {
   // analogReadRes(ADC_RESOLUTION);
   Serial.begin(9600);
-  pinMode(LED_BUILTIN, OUTPUT);
+  //pinMode(LED_BUILTIN, OUTPUT);
   serv.attach(SERVO_PIN);
   serv.write(0);
 }
@@ -34,9 +34,9 @@ void loop() {
     print_value_to_serial(current_time);
     last_print_time = current_time;
   }
-  // If time is out, then turn on the LED on the board.
-  else if (last_print_time > MAX_TIME * 1000) {
-    digitalWrite(LED_BUILTIN, HIGH);
-  }
+  // // If time is out, then turn on the LED on the board.
+  // else if (last_print_time > MAX_TIME * 1000) {
+  //   digitalWrite(LED_BUILTIN, HIGH);
+  // }
   /*******************************************************************/
 }

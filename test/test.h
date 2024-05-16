@@ -2,14 +2,15 @@
 #define TEST_H
 
 #include <Servo.h>
+#include <MAX6675.h>
 
 // Modify the constants here.
 /*********************************************************************/
 #define P_PIN1 A14  // pressure1 pin number
 #define P_PIN2 A15  // pressure2 pin number
 #define P_PIN3 A16  // pressure3 pin number
-#define T_PIN1 A8   // temperature1 pin number
-#define T_PIN2 A9   // temperature2 pin number
+#define T_PIN1 36   // temperature1 pin number
+#define T_PIN2 37   // temperature2 pin number
 #define F_PIN A17   // flowmeter pin number
 #define SERVO_PIN 9 // servo pin number
 
@@ -37,5 +38,8 @@ public:
 };
 
 void print_value_to_serial(unsigned long time);
+
+MAX6675 tc1(T_PIN1);
+MAX6675 tc2(T_PIN2);
 
 #endif
