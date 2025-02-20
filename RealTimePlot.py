@@ -74,6 +74,18 @@ class RealTimePlot(QObject):
         max_size=250,
         write_to_file=True,
     ):
+        ...
+        # Initialize valve states
+        self._valve_states = {
+            "solenoid_valves": [False] * 6,  # False for closed, True for open
+            "motor_valves": [0] * 2  # Angle values for motor ball valves
+        }
+        # Initialize previous valve states
+        self._prev_valve_states = {
+            "solenoid_valves": [False] * 6,
+            "motor_valves": [0] * 2
+        }
+        ...
         """
         Initializes the RealTimePlot object.
 
@@ -219,14 +231,52 @@ class RealTimePlot(QObject):
 
     @pyqtSlot()
     def __send_to_servo(self):
-        text = self._line_edit.text()
+        text = self._line_edit.text()  # Get the text from QLineEdit
         try:
-            self._servo_pos = int(text)
-            hex_value = hex(self._servo_pos)[2:]  # Convert to hex
-            bytes_value = bytes.fromhex(hex_value.zfill(2))  # Convert to bytes
-            self._ser.write(bytes_value)  # Write bytes to serial port
-        except ValueError:
-            print("Invalid integer")
+            # Parse the input text
+            commands = text.split(',')
+            for command in commands:
+                valve_type, index, value = command.split(':')
+                index = int(index)
+                if valve_type == "solenoid":
+                    if value.lower() == "open":
+                        self._valve_states["solenoid_valves"][index] = True
+                    elif value.lower() == "close":
+                        self._valve_states["solenoid_valves"][index] = False
+                    else:
+                        raise ValueError("Invalid solenoid valve command")
+                elif valve_type == "motor":
+                    angle = int(value)
+                    if 0 <= angle <= 180:
+                        self._valve_states["motor_valves"][index] = angle
+                    else:
+                        raise ValueError("Invalid motor valve angle")
+                else:
+                    raise ValueError("Invalid valve type")
+
+            # Check for changes and send only the changed states
+            changed_solenoids = [
+                i for i, (prev, curr) in enumerate(zip(self._prev_valve_states["solenoid_valves"], self._valve_states["solenoid_valves"]))
+                if prev != curr
+            ]
+            changed_motors = [
+                i for i, (prev, curr) in enumerate(zip(self._prev_valve_states["motor_valves"], self._valve_states["motor_valves"]))
+                if prev != curr
+            ]
+
+            if changed_solenoids or changed_motors:
+                solenoid_bytes = bytes([int(self._valve_states["solenoid_valves"][i]) for i in changed_solenoids])
+                motor_bytes = bytes([self._valve_states["motor_valves"][i] for i in changed_motors])
+                self._ser.write(solenoid_bytes + motor_bytes)
+
+                # Update previous states
+                for i in changed_solenoids:
+                    self._prev_valve_states["solenoid_valves"][i] = self._valve_states["solenoid_valves"][i]
+                for i in changed_motors:
+                    self._prev_valve_states["motor_valves"][i] = self._valve_states["motor_valves"][i]
+
+        except ValueError as e:
+            print(f"Invalid input: {e}")
         finally:
             self._line_edit.clear()
 
