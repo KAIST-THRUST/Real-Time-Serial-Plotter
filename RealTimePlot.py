@@ -231,7 +231,7 @@ class RealTimePlot(QObject):
 
     @pyqtSlot()
     def __send_to_servo(self):
-        text = self._line_edit.text()  # Get the text from QLineEdit
+         text = self._line_edit.text()  # Get the text from QLineEdit
         try:
             # Parse the input text
             commands = text.split(',')
@@ -265,9 +265,16 @@ class RealTimePlot(QObject):
             ]
 
             if changed_solenoids or changed_motors:
-                solenoid_bytes = bytes([int(self._valve_states["solenoid_valves"][i]) for i in changed_solenoids])
-                motor_bytes = bytes([self._valve_states["motor_valves"][i] for i in changed_motors])
-                self._ser.write(solenoid_bytes + motor_bytes)
+                # Prepare data to send
+                data_to_send = []
+                for i in changed_solenoids:
+                    data_to_send.append(f"S{i}:{int(self._valve_states['solenoid_valves'][i])}")
+                for i in changed_motors:
+                    data_to_send.append(f"M{i}:{self._valve_states['motor_valves'][i]}")
+                
+                # Convert to bytes and send to serial port
+                data_bytes = ','.join(data_to_send).encode('utf-8')
+                self._ser.write(data_bytes)
 
                 # Update previous states
                 for i in changed_solenoids:
