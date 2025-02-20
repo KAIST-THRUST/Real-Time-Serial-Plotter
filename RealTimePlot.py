@@ -231,7 +231,7 @@ class RealTimePlot(QObject):
 
     @pyqtSlot()
     def __send_to_servo(self):
-         text = self._line_edit.text()  # Get the text from QLineEdit
+        text = self._line_edit.text()  # Get the text from QLineEdit
         try:
             # Parse the input text
             commands = text.split(',')
